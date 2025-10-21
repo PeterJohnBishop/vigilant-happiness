@@ -33,7 +33,7 @@ func HandleWebhookPayload() gin.HandlerFunc {
 	}
 }
 
-func HandleWebhookPayloadStruct() gin.HandlerFunc {
+func HandleWebhookPayloadTypeMap() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var payload map[string]interface{}
 		if err := c.ShouldBindJSON(&payload); err != nil {
@@ -44,10 +44,10 @@ func HandleWebhookPayloadStruct() gin.HandlerFunc {
 			return
 		}
 
-		output, err := services.GenerateGoStructFieldsFromPayload(payload)
+		output, err := services.GenerateTypeMap(payload)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "Failed to generate Go struct",
+				"error": "Failed to generate type map",
 				"data":  err.Error(),
 			})
 			return

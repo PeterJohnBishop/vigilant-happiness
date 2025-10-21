@@ -1,67 +1,53 @@
 package services
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
-	"os"
-	"regexp"
-	"strings"
-
-	openai "github.com/sashabaranov/go-openai"
+	"reflect"
 )
 
-func GenerateGoStructFieldsFromPayload(payload map[string]interface{}) (string, error) {
-	client := openai.NewClient(os.Getenv("OPENAI_API_KEY"))
+func GenerateTypeMap(payload map[string]interface{}) (string, error) {
+	typeMap := make(map[string]string)
 
-	jsonData, err := json.MarshalIndent(payload, "", "  ")
-	if err != nil {
-		return "", fmt.Errorf("error marshalling payload: %w", err)
+	for key, value := range payload {
+		typeMap[key] = detectType(value)
 	}
 
-	prompt := fmt.Sprintf(`Given the following JSON payload, output only the Go struct FIELDS (inside the struct body),
-not the type declaration. Use idiomatic Go naming conventions and JSON tags.
+	result, err := json.MarshalIndent(typeMap, "", "  ")
+	if err != nil {
+		return "", fmt.Errorf("error marshalling result: %w", err)
+	}
 
-The output should be valid Go syntax like this:
-{
-    FieldName string `+"`json:\"field_name\"`"+`
-    AnotherField int `+"`json:\"another_field\"`"+`
+	return string(result), nil
 }
 
-Do NOT include commas between fields.
-
-JSON:
-%s
-`, string(jsonData))
-
-	resp, err := client.CreateChatCompletion(
-		context.Background(),
-		openai.ChatCompletionRequest{
-			Model: openai.GPT4oMini,
-			Messages: []openai.ChatCompletionMessage{
-				{
-					Role:    openai.ChatMessageRoleUser,
-					Content: prompt,
-				},
-			},
-			Temperature: 0,
-		},
-	)
-	if err != nil {
-		return "", fmt.Errorf("OpenAI API error: %w", err)
+func detectType(v interface{}) string {
+	switch val := v.(type) {
+	case string:
+		return "string"
+	case bool:
+		return "bool"
+	case int, int8, int16, int32, int64:
+		return "int"
+	case float32, float64:
+		if float64(int(val.(float64))) == val.(float64) {
+			return "int"
+		}
+		return "float64"
+	case []interface{}:
+		if len(val) == 0 {
+			return "[]any"
+		}
+		elemType := detectType(val[0])
+		return "[]" + elemType
+	case map[string]interface{}:
+		nested := make(map[string]string)
+		for k, v2 := range val {
+			nested[k] = detectType(v2)
+		}
+		nestedJSON, _ := json.MarshalIndent(nested, "", "  ")
+		return string(nestedJSON)
+	default:
+		return fmt.Sprintf("%s", reflect.TypeOf(v))
 	}
-
-	if len(resp.Choices) == 0 {
-		return "", fmt.Errorf("no response from OpenAI")
-	}
-
-	output := strings.TrimSpace(resp.Choices[0].Message.Content)
-
-	re := regexp.MustCompile(`(?s)\{(.*)\}`)
-	matches := re.FindStringSubmatch(output)
-	if len(matches) > 1 {
-		output = strings.TrimSpace(matches[1])
-	}
-
-	return output, nil
 }
