@@ -26,7 +26,7 @@ func buildStruct(name string, payload map[string]interface{}, structs map[string
 		fieldName := toCamelCase(key)
 		fieldType, nestedStruct := detectType(fieldName, value, structs)
 
-		sb.WriteString(fmt.Sprintf("    %s %s `json:\"%s\" `\n", fieldName, fieldType, key))
+		sb.WriteString(fmt.Sprintf("    %s %s `json:\"%s\"`\n", fieldName, fieldType, key))
 
 		if nestedStruct != "" {
 			structs[fieldType] = nestedStruct
@@ -83,7 +83,7 @@ func buildNestedStruct(name string, payload map[string]interface{}, structs map[
 	for k, v2 := range payload {
 		fieldName := toCamelCase(k)
 		fieldType, nested := detectType(fieldName, v2, structs)
-		sb.WriteString(fmt.Sprintf("    %s %s `json:\"%s\" `\n", fieldName, fieldType, k))
+		sb.WriteString(fmt.Sprintf("    %s %s `json:\"%s\"`\n", fieldName, fieldType, k))
 		if nested != "" {
 			structs[fieldType] = nested
 		}
