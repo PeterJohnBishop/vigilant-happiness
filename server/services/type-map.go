@@ -26,7 +26,7 @@ func buildStruct(name string, payload map[string]interface{}, structs map[string
 		fieldName := toCamelCase(key)
 		fieldType, nestedStruct := detectType(fieldName, value, structs)
 
-		sb.WriteString(fmt.Sprintf("    %s %s `json:\"%s\" `\n", fieldName, fieldType, key))
+		sb.WriteString(fmt.Sprintf("    %s %s `json:\"%s\" dynamodbav:\"%s\"`\n", fieldName, fieldType, key, key))
 
 		if nestedStruct != "" {
 			structs[fieldType] = nestedStruct
@@ -45,7 +45,8 @@ func detectType(parentName string, v interface{}, structs map[string]string) (st
 	case int, int8, int16, int32, int64:
 		return "int", ""
 	case float32, float64:
-		if reflect.ValueOf(val).Float() == float64(int(reflect.ValueOf(val).Float())) {
+		f := reflect.ValueOf(val).Float()
+		if f == float64(int(f)) {
 			return "int", ""
 		}
 		return "float64", ""
@@ -53,23 +54,41 @@ func detectType(parentName string, v interface{}, structs map[string]string) (st
 		if len(val) == 0 {
 			return "[]any", ""
 		}
-		elemType, nested := detectType(parentName, val[0], structs)
-		return "[]" + elemType, nested
+
+		first := val[0]
+		elemType, nested := detectType(parentName, first, structs)
+
+		if _, ok := first.(map[string]interface{}); ok {
+			elemStructName := singularize(parentName)
+			elemBody := buildNestedStruct(elemStructName, first.(map[string]interface{}), structs)
+			structs[elemStructName] = elemBody
+			return "[]" + elemStructName, ""
+		}
+
+		if nested != "" {
+			structs[elemType] = nested
+		}
+		return "[]" + elemType, ""
 	case map[string]interface{}:
 		structName := parentName
-		var sb strings.Builder
-		for k, v2 := range val {
-			fieldName := toCamelCase(k)
-			fieldType, nested := detectType(fieldName, v2, structs)
-			sb.WriteString(fmt.Sprintf("    %s %s `json:\"%s\" dynamodbav:\"%s\"`\n", fieldName, fieldType, k, k))
-			if nested != "" {
-				structs[fieldType] = nested
-			}
-		}
-		return structName, sb.String()
+		body := buildNestedStruct(structName, val, structs)
+		return structName, body
 	default:
 		return "any", ""
 	}
+}
+
+func buildNestedStruct(name string, payload map[string]interface{}, structs map[string]string) string {
+	var sb strings.Builder
+	for k, v2 := range payload {
+		fieldName := toCamelCase(k)
+		fieldType, nested := detectType(fieldName, v2, structs)
+		sb.WriteString(fmt.Sprintf("    %s %s `json:\"%s\" dynamodbav:\"%s\"`\n", fieldName, fieldType, k, k))
+		if nested != "" {
+			structs[fieldType] = nested
+		}
+	}
+	return sb.String()
 }
 
 func toCamelCase(s string) string {
@@ -82,4 +101,11 @@ func toCamelCase(s string) string {
 		parts[i] = string(runes)
 	}
 	return strings.Join(parts, "")
+}
+
+func singularize(name string) string {
+	if strings.HasSuffix(name, "s") {
+		return name[:len(name)-1]
+	}
+	return name
 }
