@@ -2,7 +2,7 @@
 
 An endpoint that processes a response to return a Go struct.
 
-## /webhook 
+## https://vigilant-happiness-df7653c99ec9.herokuapp.com/webhook 
 
 Send a webhook payload to convert to a Go type struct.
 
@@ -115,7 +115,7 @@ type taskCreated struct {
     WebhookId string `json:"webhook_id" `
 }
 
-## /type?name={type_name}
+## https://vigilant-happiness-df7653c99ec9.herokuapp.com/type?name={type_name}
 
 Send JSON to convert to a Go type struct.
 
