@@ -5,5 +5,5 @@ import "github.com/gin-gonic/gin"
 func AddPublicRoutes(r *gin.Engine) {
 	r.GET("/", Home())
 	r.POST("/webhook", HandleWebhookPayload())
-	r.POST("/webhook/type", HandleWebhookPayloadTypeMap())
+	r.POST("/type", HandleTypeMap())
 }
