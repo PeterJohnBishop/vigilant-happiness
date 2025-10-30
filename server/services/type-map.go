@@ -60,7 +60,7 @@ func detectType(parentName string, v interface{}, structs map[string]string) (st
 
 		if _, ok := first.(map[string]interface{}); ok {
 			elemStructName := singularize(parentName)
-			elemBody := buildNestedStruct(elemStructName, first.(map[string]interface{}), structs)
+			elemBody := buildNestedStruct(first.(map[string]interface{}), structs)
 			structs[elemStructName] = elemBody
 			return "[]" + elemStructName, ""
 		}
@@ -71,14 +71,14 @@ func detectType(parentName string, v interface{}, structs map[string]string) (st
 		return "[]" + elemType, ""
 	case map[string]interface{}:
 		structName := parentName
-		body := buildNestedStruct(structName, val, structs)
+		body := buildNestedStruct(val, structs)
 		return structName, body
 	default:
 		return "any", ""
 	}
 }
 
-func buildNestedStruct(name string, payload map[string]interface{}, structs map[string]string) string {
+func buildNestedStruct(payload map[string]interface{}, structs map[string]string) string {
 	var sb strings.Builder
 	for k, v2 := range payload {
 		fieldName := toCamelCase(k)
@@ -103,6 +103,7 @@ func toCamelCase(s string) string {
 	return strings.Join(parts, "")
 }
 
+// converts plural names to singular for type
 func singularize(name string) string {
 	if strings.HasSuffix(name, "s") {
 		return name[:len(name)-1]
