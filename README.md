@@ -1,6 +1,7 @@
 # vigilant-happiness
 
 An endpoint that processes a response to return a Go struct.
+- Added Typescript Interfaces!
 
 ## https://vigilant-happiness-df7653c99ec9.herokuapp.com/webhook 
 

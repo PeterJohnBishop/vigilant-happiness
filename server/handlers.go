@@ -16,7 +16,7 @@ func Home() gin.HandlerFunc {
 	}
 }
 
-func HandleWebhookPayload() gin.HandlerFunc {
+func HandleWebhookPayloadTypeMap() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var payload map[string]interface{}
 		if err := c.ShouldBindJSON(&payload); err != nil {
@@ -30,7 +30,7 @@ func HandleWebhookPayload() gin.HandlerFunc {
 		if name == "" {
 			name = "WebhookEvent"
 		}
-		output, err := services.GenerateTypeMap(name, payload)
+		output, err := services.GenerateGoTypeMap(name, payload)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": "Failed to generate type map",
@@ -64,7 +64,75 @@ func HandleTypeMap() gin.HandlerFunc {
 		if name == "" {
 			name = "GeneratedType"
 		}
-		output, err := services.GenerateTypeMap(name, payload)
+		output, err := services.GenerateGoTypeMap(name, payload)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Failed to generate type map",
+				"data":  err.Error(),
+			})
+			return
+		}
+
+		clean := strings.ReplaceAll(output, `\n`, "\n")
+		clean = strings.ReplaceAll(clean, `\"`, `"`)
+		clean = strings.TrimPrefix(clean, "```go")
+		clean = strings.TrimPrefix(clean, "```")
+		clean = strings.TrimSuffix(clean, "```")
+		clean = strings.TrimSpace(clean)
+
+		c.Data(http.StatusOK, "text/plain; charset=utf-8", []byte(clean))
+	}
+}
+
+func HandleInterfaceMap() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var payload map[string]interface{}
+		if err := c.ShouldBindJSON(&payload); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Invalid JSON payload",
+				"data":  err.Error(),
+			})
+			return
+		}
+		name := c.Query("name")
+		if name == "" {
+			name = "GeneratedType"
+		}
+		output, err := services.GenerateInterfaceMap(name, payload)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Failed to generate type map",
+				"data":  err.Error(),
+			})
+			return
+		}
+
+		clean := strings.ReplaceAll(output, `\n`, "\n")
+		clean = strings.ReplaceAll(clean, `\"`, `"`)
+		clean = strings.TrimPrefix(clean, "```go")
+		clean = strings.TrimPrefix(clean, "```")
+		clean = strings.TrimSuffix(clean, "```")
+		clean = strings.TrimSpace(clean)
+
+		c.Data(http.StatusOK, "text/plain; charset=utf-8", []byte(clean))
+	}
+}
+
+func HandleWebhookPayloadInterfaceMap() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var payload map[string]interface{}
+		if err := c.ShouldBindJSON(&payload); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Invalid JSON payload",
+				"data":  err.Error(),
+			})
+			return
+		}
+		name := payload["event"].(string)
+		if name == "" {
+			name = "WebhookEvent"
+		}
+		output, err := services.GenerateInterfaceMap(name, payload)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": "Failed to generate type map",

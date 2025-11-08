@@ -7,7 +7,7 @@ import (
 	"unicode"
 )
 
-func GenerateTypeMap(structName string, payload map[string]interface{}) (string, error) {
+func GenerateGoTypeMap(structName string, payload map[string]interface{}) (string, error) {
 	structs := make(map[string]string)
 	buildStruct(structName, payload, structs)
 
